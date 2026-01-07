@@ -1,0 +1,4 @@
+Name       = EV/IV Redirector
+Version    = 1.0.3
+Essentials = 21.1
+Credits    = Clara, DPertierra
