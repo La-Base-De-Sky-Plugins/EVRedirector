@@ -8,15 +8,22 @@
 # Ve a def drawPokeData
 #===============================================================================
 
-EDIT_EVS = true
-EDIT_IVS = true
+module EVRedirector
+  EDIT_EVS = true
+  EDIT_IVS = true
 
-# Si este parámetro está en true en la parte del summary donde está la C saldran las opciones para acceder
-# Al EV/IV Redirector
-ADD_EV_IV_REDIRECTOR_TO_SUMMARY = true
+  COST_DIFFERENCE_EV = 500
+  COST_DIFFERENCE_IV = 2000
+  MAX_EVS = 510
+  MAX_EV_PER_STAT = 252
+  MAX_IV = 31
 
-if EDIT_EVS || EDIT_IVS
-  if UIHandlers.exists?(:summary, :page_allstats) && ADD_EV_IV_REDIRECTOR_TO_SUMMARY
+  # Si este parámetro está en true en la parte del summary donde está la C saldran las opciones para acceder
+  # Al EV/IV Redirector
+  ADD_EV_IV_REDIRECTOR_TO_SUMMARY = true
+
+  module_function
+  def add_options_to_summary(page = :summary, subpage = :page_allstats)
     if EDIT_EVS && EDIT_IVS
       # options = [:EVRedirector, :IVRedirector]
       options = [_INTL("Organizar EVs"), _INTL("Organizar IVs")]
@@ -25,7 +32,24 @@ if EDIT_EVS || EDIT_IVS
     else
       options = [_INTL("Organizar IVs")]
     end
-    UIHandlers.edit_hash(:summary, :page_allstats, "options", options)
+    UIHandlers.edit_hash(page, subpage, "options", options)
+  end
+
+  def can_change_mode?
+    return EDIT_EVS && EDIT_IVS
+  end
+end
+
+
+
+
+
+
+if EVRedirector::EDIT_EVS || EVRedirector::EDIT_IVS
+  if UIHandlers.exists?(:summary, :page_allstats) && EVRedirector::ADD_EV_IV_REDIRECTOR_TO_SUMMARY
+    EVRedirector.add_options_to_summary(:summary, :page_allstats)
+  elsif UIHandlers.exists?(:summary, :page_skills) && EVRedirector::ADD_EV_IV_REDIRECTOR_TO_SUMMARY
+    EVRedirector.add_options_to_summary(:summary, :page_skills)
   end
 
   class PokemonSummary_Scene
@@ -41,19 +65,13 @@ if EDIT_EVS || EDIT_IVS
   end
 
   class EVReorganizeScene
-      ######## CONFIGURACIÓN ########
-      
-      COST_DIFFERENCE_EV = 500
-      COST_DIFFERENCE_IV = 2000
-      
+      ######## CONFIGURACIÓN ########      
       BASECOLOR_LIGHT   = Color.new(248,248,248)
       SHADOWCOLOR_LIGHT = Color.new(47,46,54)
       
       BASECOLOR_DARK   = Color.new(64,64,64)
       SHADOWCOLOR_DARK = Color.new(176,176,176)
-      MAX_EVS = 510
-      MAX_EV_PER_STAT = 252
-      MAX_IV = 31
+   
       
       ###############################
       def initialize(pokemon, mode = :EV)
@@ -64,7 +82,7 @@ if EDIT_EVS || EDIT_IVS
         @original_ivs = dup_ev_iv(pokemon.iv)
         @current_ivs  = dup_ev_iv(@original_ivs)
         # @max_evs = 510
-        @cost_per_change = mode == :IV ? COST_DIFFERENCE_IV : COST_DIFFERENCE_EV
+        @cost_per_change = mode == :IV ? EVRedirector::COST_DIFFERENCE_IV : EVRedirector::COST_DIFFERENCE_EV
         @selected_stat = 0
         @changed = false
         @base=BASECOLOR_LIGHT
@@ -83,7 +101,7 @@ if EDIT_EVS || EDIT_IVS
 
       def change_mode
         @mode = @mode == :EV ? :IV : :EV
-        @cost_per_change = @mode == :IV ? COST_DIFFERENCE_IV : COST_DIFFERENCE_EV
+        @cost_per_change = @mode == :IV ? EVRedirector::COST_DIFFERENCE_IV : EVRedirector::COST_DIFFERENCE_EV
       end
     
       def pbPokerus(pkmn)
@@ -96,8 +114,8 @@ if EDIT_EVS || EDIT_IVS
         @viewport.z = 99999
         @sprites = {}
     
-        addBackgroundPlane(@sprites,"bg","EVRedirector/bg",@viewport)
-        addBackgroundPlane(@sprites,"background","EVRedirector/page",@viewport)
+        addBackgroundPlane(@sprites,"bg","/EVRedirector/bg",@viewport)
+        addBackgroundPlane(@sprites,"background","/EVRedirector/page",@viewport)
     
         @sprites["overlay"] = BitmapSprite.new(Graphics.width, Graphics.height, @viewport)
         @sprites["overlay2"] = BitmapSprite.new(Graphics.width, Graphics.height, @viewport)
@@ -139,7 +157,7 @@ if EDIT_EVS || EDIT_IVS
         ]
 
         aux_mode = @mode == :EV ? :IV : :EV
-        textpos.push(["[D] " + _INTL("Cambiar modo ({1})", aux_mode.to_s), Graphics.width - 230, 22, :left, @base, @shadow]) if EDIT_EVS && EDIT_IVS 
+        textpos.push(["[D] " + _INTL("Cambiar modo ({1})", aux_mode.to_s), Graphics.width - 230, 22, :left, @base, @shadow]) if EVRedirector.can_change_mode?
 
         if @pokemon.hasItem?
           textpos.push([@pokemon.item.name, 16, 358, :left, Color.new(64, 64, 64), Color.new(176, 176, 176)])
@@ -248,13 +266,13 @@ if EDIT_EVS || EDIT_IVS
         # EVs totales y restantes
         if @mode == :EV
           total_evs = @current_evs.values.inject(0) { |sum, ev| sum + ev }
-          remaining_evs = MAX_EVS - total_evs
-          textpos.push([_INTL("EVs Totales: {1}/{2}", total_evs, MAX_EVS), 234, 288, false, @base2, @shadow2])
+          remaining_evs = EVRedirector::COST_DIFFERENCE_EV - total_evs
+          textpos.push([_INTL("EVs Totales: {1}/{2}", total_evs, EVRedirector::COST_DIFFERENCE_EV), 234, 288, false, @base2, @shadow2])
           textpos.push([_INTL("EVs Restantes: {1}", remaining_evs), 234, 320, false, @base2, @shadow2])
         else
           stat = STAT_ORDER[@selected_stat]
-          textpos.push([_INTL("IVs Totales: {1}/{2}", @current_ivs[stat], MAX_IV), 234, 288, false, @base2, @shadow2]) if @current_ivs[stat]
-          textpos.push([_INTL("IVs Restantes: {1}", MAX_IV - @current_ivs[stat]), 234, 320, false, @base2, @shadow2]) if @current_ivs[stat]
+          textpos.push([_INTL("IVs Totales: {1}/{2}", @current_ivs[stat], EVRedirector::MAX_IV), 234, 288, false, @base2, @shadow2]) if @current_ivs[stat]
+          textpos.push([_INTL("IVs Restantes: {1}", EVRedirector::MAX_IV - @current_ivs[stat]), 234, 320, false, @base2, @shadow2]) if @current_ivs[stat]
         end
         # Coste
         cost = calculateCost
@@ -285,7 +303,7 @@ if EDIT_EVS || EDIT_IVS
           # Cálculo de EVs restantes y validación
           total_evs = @current_evs.values.inject(0) { |sum, ev| sum + ev }
           
-          remaining_evs = MAX_EVS - total_evs
+          remaining_evs = EVRedirector::COST_DIFFERENCE_EV - total_evs
     
           # Navegación de estadísticas
           if Input.trigger?(Input::UP)
@@ -294,7 +312,7 @@ if EDIT_EVS || EDIT_IVS
             @selected_stat = (@selected_stat + 1) % 7
           end
 
-          if Input.trigger?(Input::SPECIAL) && (EDIT_EVS && EDIT_IVS)
+          if Input.trigger?(Input::SPECIAL) && EVRedirector.can_change_mode?
             if pbConfirmMessage(_INTL("¿Deseas cambiar de modo?"))
               change = true
               cost = calculateCost
@@ -330,14 +348,14 @@ if EDIT_EVS || EDIT_IVS
               end
             elsif Input.repeat?(Input::RIGHT)
               if @mode == :EV
-                modifyEvs(stat, 1) if @current_evs[stat] < MAX_EV_PER_STAT && remaining_evs > 0
+                modifyEvs(stat, 1) if @current_evs[stat] < EVRedirector::MAX_EV_PER_STAT && remaining_evs > 0
               else
-                modifyIvs(stat, 1) if @current_ivs[stat] < MAX_IV
+                modifyIvs(stat, 1) if @current_ivs[stat] < EVRedirector::MAX_IV
               end
             elsif Input.repeat?(Input::JUMPDOWN)
               modifyEvs(stat, -4) if @current_evs[stat] >= 4 && @mode == :EV
             elsif Input.repeat?(Input::JUMPUP)
-              modifyEvs(stat, 4) if @current_evs[stat] < MAX_EV_PER_STAT - 4 && remaining_evs >= 4 && @mode == :EV
+              modifyEvs(stat, 4) if @current_evs[stat] < EVRedirector::MAX_EV_PER_STAT - 4 && remaining_evs >= 4 && @mode == :EV
             elsif Input.trigger?(Input::AUX1)
               if @mode == :EV
                 modifyEvs(stat, -@current_evs[stat]) # Quitar todos los EVs
@@ -346,10 +364,10 @@ if EDIT_EVS || EDIT_IVS
               end
             elsif Input.trigger?(Input::AUX2)
               if @mode == :EV
-                max_addable = [MAX_EV_PER_STAT - @current_evs[stat], remaining_evs].min
+                max_addable = [EVRedirector::MAX_EV_PER_STAT - @current_evs[stat], remaining_evs].min
                 modifyEvs(stat, max_addable) # Añadir todos los EVs posibles
               else
-                max_addable = MAX_IV - @current_ivs[stat]
+                max_addable = EVRedirector::MAX_IV - @current_ivs[stat]
                 modifyIvs(stat, max_addable) # Añadir todos los IVs posibles
               end
             end

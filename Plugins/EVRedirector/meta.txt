@@ -1,4 +1,5 @@
 Name       = EV/IV Redirector
-Version    = 1.0.3
+Version    = 1.1.0
 Essentials = 21.1
+Requires   = Modular UI Scenes
 Credits    = Clara, DPertierra
