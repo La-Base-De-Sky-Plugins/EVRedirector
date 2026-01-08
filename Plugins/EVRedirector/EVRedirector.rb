@@ -266,8 +266,8 @@ if EVRedirector::EDIT_EVS || EVRedirector::EDIT_IVS
         # EVs totales y restantes
         if @mode == :EV
           total_evs = @current_evs.values.inject(0) { |sum, ev| sum + ev }
-          remaining_evs = EVRedirector::COST_DIFFERENCE_EV - total_evs
-          textpos.push([_INTL("EVs Totales: {1}/{2}", total_evs, EVRedirector::COST_DIFFERENCE_EV), 234, 288, false, @base2, @shadow2])
+          remaining_evs = EVRedirector::MAX_EVS - total_evs
+          textpos.push([_INTL("EVs Totales: {1}/{2}", total_evs, EVRedirector::MAX_EVS), 234, 288, false, @base2, @shadow2])
           textpos.push([_INTL("EVs Restantes: {1}", remaining_evs), 234, 320, false, @base2, @shadow2])
         else
           stat = STAT_ORDER[@selected_stat]
@@ -303,7 +303,7 @@ if EVRedirector::EDIT_EVS || EVRedirector::EDIT_IVS
           # Cálculo de EVs restantes y validación
           total_evs = @current_evs.values.inject(0) { |sum, ev| sum + ev }
           
-          remaining_evs = EVRedirector::COST_DIFFERENCE_EV - total_evs
+          remaining_evs = EVRedirector::MAX_EVS - total_evs
     
           # Navegación de estadísticas
           if Input.trigger?(Input::UP)
